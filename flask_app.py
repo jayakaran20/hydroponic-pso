@@ -19,7 +19,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Initialize Flask app
-app = Flask(__name__)
+# NOTE: this project keeps `index.html` at repo root (not in `templates/`).
+# Point Flask templates there so `/` works consistently in local runs and containers.
+app = Flask(__name__, template_folder='.')
 CORS(app)
 
 # Global variables for models
@@ -68,7 +70,9 @@ def index():
 @app.route('/dashboard')
 def dashboard():
     """Dashboard page"""
-    return render_template('dashboard.html')
+    if os.path.exists('dashboard.html'):
+        return render_template('dashboard.html')
+    return jsonify({'error': 'dashboard.html not found'}), 404
 
 
 @app.route('/api/health')

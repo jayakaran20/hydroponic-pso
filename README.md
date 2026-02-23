@@ -417,3 +417,53 @@ This project is licensed under the MIT License - see LICENSE file for details.
 **Last Updated:** January 25, 2026  
 **Version:** 1.0.0  
 **Status:** ✅ Production Ready
+
+---
+
+## 🚢 Automated Deployment (Frontend + Backend)
+
+This repository now includes a fully automated deployment pipeline:
+
+- **Backend container**: `Dockerfile.backend` (Flask API served with Gunicorn)
+- **Frontend container**: `Dockerfile.frontend` (Nginx serving `index.html` and proxying `/api` to backend)
+- **Production compose**: `deploy/docker-compose.prod.yml`
+- **GitHub Actions CI/CD**: `.github/workflows/deploy.yml`
+
+### 1) One-time server prerequisites
+
+On your deployment server:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose-plugin
+sudo systemctl enable --now docker
+mkdir -p /opt/hydroponic-pso
+```
+
+### 2) Configure GitHub repository secrets
+
+Set the following **Repository Secrets**:
+
+- `SSH_HOST` - server host or IP
+- `SSH_USER` - SSH username
+- `SSH_PRIVATE_KEY` - private key for SSH auth
+- `DEPLOY_PATH` - remote path (e.g., `/opt/hydroponic-pso`)
+- `GHCR_USER` - GitHub username for GHCR pull
+- `GHCR_PAT` - GitHub Personal Access Token with `read:packages`
+
+### 3) Trigger deployment
+
+- Push to the `main` branch, or
+- Run **Actions → Build and Deploy Frontend + Backend → Run workflow**
+
+The workflow will:
+1. Build backend and frontend Docker images.
+2. Push them to GHCR.
+3. SSH into your server.
+4. Pull latest images and restart both services with Docker Compose.
+
+### 4) Access your deployed app
+
+- Frontend: `http://<your-server-ip>/`
+- Backend health endpoint: `http://<your-server-ip>/api/health`
+
