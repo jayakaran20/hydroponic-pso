@@ -47,3 +47,5 @@ jupyter>=1.0.0
 ipython>=8.15.0
 black>=23.9.0
 flake8>=6.1.0
+
+gunicorn>=21.2.0
