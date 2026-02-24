@@ -91,6 +91,25 @@ python flask_app.py
 - 📈 Model performance metrics
 - 🏗️ System architecture visualization
 
+### 4. Deploy Frontend + Backend (Docker)
+
+```bash
+# From repository root
+./deploy/deploy.sh
+
+# Stop services
+docker compose -f deploy/docker-compose.prod.yml down
+```
+
+**What gets deployed:**
+- `backend` service (Flask + Gunicorn) on internal port 5000
+- `frontend` service (Nginx static UI + API reverse proxy) on port 80 (or `FRONTEND_PORT`)
+
+**Optional environment variables:**
+- `FRONTEND_PORT` (default `80`)
+- `BACKEND_IMAGE` (default `hydroponic-backend:latest`)
+- `FRONTEND_IMAGE` (default `hydroponic-frontend:latest`)
+
 ### 4. API Usage (cURL)
 
 ```bash
