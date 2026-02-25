@@ -1,16 +1,29 @@
 services:
   backend:
-    image: ${BACKEND_IMAGE}
+    build:
+      context: ..
+      dockerfile: Dockerfile.backend
+    image: ${BACKEND_IMAGE:-hydroponic-backend:latest}
     container_name: hydroponic-backend
     restart: unless-stopped
-    ports:
-      - "5000:5000"
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   frontend:
-    image: ${FRONTEND_IMAGE}
+    build:
+      context: ..
+      dockerfile: Dockerfile.frontend
+    image: ${FRONTEND_IMAGE:-hydroponic-frontend:latest}
     container_name: hydroponic-frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
-      - "80:80"
+      - "${FRONTEND_PORT:-80}:80"
