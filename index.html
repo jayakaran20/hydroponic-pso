@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base-url" content="">
     <title>Hydroponic Agriculture - CNN-PSO Optimization</title>
     <style>
         * {
@@ -285,11 +286,6 @@
             <button class="tab-btn" onclick="showSection('batch')">Batch Processing</button>
             <button class="tab-btn" onclick="showSection('metrics')">Model Metrics</button>
             <button class="tab-btn" onclick="showSection('architecture')">Architecture</button>
-            <button class="tab-btn active" onclick="showSection(event, 'overview')">Overview</button>
-            <button class="tab-btn" onclick="showSection(event, 'predict')">Real-Time Prediction</button>
-            <button class="tab-btn" onclick="showSection(event, 'batch')">Batch Processing</button>
-            <button class="tab-btn" onclick="showSection(event, 'metrics')">Model Metrics</button>
-            <button class="tab-btn" onclick="showSection(event, 'architecture')">Architecture</button>
         </div>
 
         <!-- OVERVIEW SECTION -->
@@ -527,8 +523,17 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
 
     <script>
+        const API_BASE_URL = (
+            window.API_BASE_URL ||
+            document.querySelector('meta[name="api-base-url"]')?.content ||
+            ''
+        ).replace(/\/$/, '');
+
+        function apiFetch(path, options = {}) {
+            return fetch(`${API_BASE_URL}${path}`, options);
+        }
+
         function showSection(sectionId) {
-        function showSection(event, sectionId) {
             // Hide all sections
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
@@ -560,6 +565,7 @@ Dense(1, activation=sigmoid) → Binary Output
             document.getElementById('results').style.display = 'none';
 
             fetch('/api/predict', {
+            apiFetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -626,6 +632,7 @@ Dense(1, activation=sigmoid) → Binary Output
             formData.append('file', fileInput.files[0]);
 
             fetch('/api/batch-predict', {
+            apiFetch('/api/batch-predict', {
                 method: 'POST',
                 body: formData
             })
@@ -645,6 +652,7 @@ Dense(1, activation=sigmoid) → Binary Output
 
         function loadMetrics() {
             fetch('/api/metrics')
+            apiFetch('/api/metrics')
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
@@ -667,6 +675,7 @@ Dense(1, activation=sigmoid) → Binary Output
         // Check API health on load
         window.addEventListener('load', () => {
             fetch('/api/health')
+            apiFetch('/api/health')
             .then(response => response.json())
             .then(data => console.log('API Health:', data))
             .catch(error => console.log('API connection error'));
