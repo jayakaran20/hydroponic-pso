@@ -91,21 +91,28 @@ python flask_app.py
 - 📈 Model performance metrics
 - 🏗️ System architecture visualization
 
-### 4. Deploy Frontend + Backend (Docker)
+### 4. Deploy Frontend + Backend (Automatic)
 
 ```bash
-# From repository root
-./deploy/deploy.sh
-
-# Stop services
-docker compose -f deploy/docker-compose.prod.yml down
+# From repository root (recommended)
+./deploy/deploy_auto.sh
 ```
 
-**What gets deployed:**
-- `backend` service (Flask + Gunicorn) on internal port 5000
-- `frontend` service (Nginx static UI + API reverse proxy) on port 80 (or `FRONTEND_PORT`)
+`deploy_auto.sh` will try Docker deployment first and automatically fall back to a local Python deployment if Docker is unavailable.
 
-**Optional environment variables:**
+- Docker mode URL: `http://localhost:${FRONTEND_PORT:-80}`
+- Local fallback URL (single service serving UI + API): `http://localhost:5000`
+
+**Stop commands:**
+```bash
+# Stop Docker services
+docker compose -f deploy/docker-compose.prod.yml down
+
+# Stop local fallback service
+./deploy/stop_local.sh
+```
+
+**Optional environment variables (Docker mode):**
 - `FRONTEND_PORT` (default `80`)
 - `BACKEND_IMAGE` (default `hydroponic-backend:latest`)
 - `FRONTEND_IMAGE` (default `hydroponic-frontend:latest`)
@@ -485,4 +492,3 @@ The workflow will:
 
 - Frontend: `http://<your-server-ip>/`
 - Backend health endpoint: `http://<your-server-ip>/api/health`
-
