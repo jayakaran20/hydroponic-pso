@@ -149,6 +149,36 @@ This repo includes `vercel.json` for SPA/static routing.
 - If frontend and backend are on different domains, CORS is already enabled in Flask.
 - Frontend requests use the configured API base URL; if left blank, it uses same-origin (`/api/...`).
 
+### 8. Short Deployment Procedure (Vercel + Render)
+
+**Option A: Render (Frontend + Backend together)**
+1. Push code to GitHub.
+2. Render → **New +** → **Blueprint** → select repo (uses `render.yaml`).
+3. Wait until backend is live, then copy backend URL (for example `https://hydroponic-backend.onrender.com`).
+4. Set this in `index.html`:
+   ```html
+   <meta name="api-base-url" content="https://hydroponic-backend.onrender.com">
+   ```
+5. Redeploy frontend static service.
+
+**Option B: Backend on Render + Frontend on Vercel**
+1. Deploy backend on Render first (Docker service from `Dockerfile.backend`).
+2. Deploy frontend on Vercel (repo root, uses `vercel.json`).
+3. Set backend URL in `index.html` `meta[name="api-base-url"]` as above.
+4. Redeploy Vercel frontend.
+
+**Quick API Connection Check (Frontend ↔ Backend)**
+```bash
+# 1) Backend health
+curl https://YOUR_BACKEND_URL/api/health
+
+# 2) Prediction endpoint
+curl -X POST https://YOUR_BACKEND_URL/api/predict \
+  -H "Content-Type: application/json" \
+  -d '{"ph":6.0,"tds":1200,"water_level":1,"dht_temp":24,"dht_humidity":70,"water_temp":21}'
+```
+Open frontend URL and verify browser DevTools Network shows successful `/api/health` and `/api/predict` calls.
+
 ### 7. API Usage (cURL)
 
 ```bash
