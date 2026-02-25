@@ -280,11 +280,11 @@
     <div class="container">
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-            <button class="tab-btn active" onclick="showSection('overview')">Overview</button>
-            <button class="tab-btn" onclick="showSection('predict')">Real-Time Prediction</button>
-            <button class="tab-btn" onclick="showSection('batch')">Batch Processing</button>
-            <button class="tab-btn" onclick="showSection('metrics')">Model Metrics</button>
-            <button class="tab-btn" onclick="showSection('architecture')">Architecture</button>
+            <button class="tab-btn active" onclick="showSection(event, 'overview')">Overview</button>
+            <button class="tab-btn" onclick="showSection(event, 'predict')">Real-Time Prediction</button>
+            <button class="tab-btn" onclick="showSection(event, 'batch')">Batch Processing</button>
+            <button class="tab-btn" onclick="showSection(event, 'metrics')">Model Metrics</button>
+            <button class="tab-btn" onclick="showSection(event, 'architecture')">Architecture</button>
         </div>
         
         <!-- OVERVIEW SECTION -->
@@ -522,7 +522,7 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
     
     <script>
-        function showSection(sectionId) {
+        function showSection(event, sectionId) {
             // Hide all sections
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');

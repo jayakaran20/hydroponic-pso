@@ -91,6 +91,32 @@ python flask_app.py
 - 📈 Model performance metrics
 - 🏗️ System architecture visualization
 
+### 4. Deploy Frontend + Backend (Automatic)
+
+```bash
+# From repository root (recommended)
+./deploy/deploy_auto.sh
+```
+
+`deploy_auto.sh` will try Docker deployment first and automatically fall back to a local Python deployment if Docker is unavailable.
+
+- Docker mode URL: `http://localhost:${FRONTEND_PORT:-80}`
+- Local fallback URL (single service serving UI + API): `http://localhost:5000`
+
+**Stop commands:**
+```bash
+# Stop Docker services
+docker compose -f deploy/docker-compose.prod.yml down
+
+# Stop local fallback service
+./deploy/stop_local.sh
+```
+
+**Optional environment variables (Docker mode):**
+- `FRONTEND_PORT` (default `80`)
+- `BACKEND_IMAGE` (default `hydroponic-backend:latest`)
+- `FRONTEND_IMAGE` (default `hydroponic-frontend:latest`)
+
 ### 4. API Usage (cURL)
 
 ```bash
