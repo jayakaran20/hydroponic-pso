@@ -36,13 +36,13 @@ scaler = None
 def load_models():
     """Load trained models from disk"""
     global baseline_model, optimized_model
-    
+
     try:
         if os.path.exists('models/baseline_cnn.h5'):
             baseline_model = tf.keras.models.load_model('models/baseline_cnn.h5')
     except:
         pass
-    
+
     try:
         if os.path.exists('models/pso_optimized_cnn.h5'):
             optimized_model = tf.keras.models.load_model('models/pso_optimized_cnn.h5')
@@ -101,7 +101,7 @@ def predict():
     """
     try:
         data = request.json
-        
+
         # Extract features in correct order
         features = np.array([[
             data.get('ph', 6.0),
@@ -111,12 +111,12 @@ def predict():
             data.get('dht_humidity', 70),
             data.get('water_temp', 21)
         ]])
-        
+
         # Preprocess
         features_processed = preprocess_input(features)
-        
+
         predictions = {}
-        
+
         # Baseline prediction
         if baseline_model:
             baseline_pred = baseline_model.predict(features_processed, verbose=0)
@@ -125,7 +125,7 @@ def predict():
                 'health_status': 'Healthy' if baseline_pred[0][0] > 0.5 else 'Unhealthy',
                 'confidence': float(max(baseline_pred[0][0], 1 - baseline_pred[0][0]))
             }
-        
+
         # Optimized prediction
         if optimized_model:
             optimized_pred = optimized_model.predict(features_processed, verbose=0)
@@ -134,14 +134,14 @@ def predict():
                 'health_status': 'Healthy' if optimized_pred[0][0] > 0.5 else 'Unhealthy',
                 'confidence': float(max(optimized_pred[0][0], 1 - optimized_pred[0][0]))
             }
-        
+
         return jsonify({
             'success': True,
             'input_data': data,
             'predictions': predictions,
             'timestamp': datetime.now().isoformat()
         })
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -157,44 +157,44 @@ def batch_predict():
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-        
+
         file = request.files['file']
-        
+
         # Read CSV
         df = pd.read_csv(file)
-        
+
         # Expected columns
         feature_cols = ['pH', 'TDS', 'water_level', 'DHT_temp', 'DHT_humidity', 'water_temp']
-        
+
         if not all(col in df.columns for col in feature_cols):
             return jsonify({'error': 'Missing required columns'}), 400
-        
+
         # Prepare features
         X = df[feature_cols].values
         X = preprocess_input(X)
-        
+
         results = []
-        
+
         if baseline_model:
             baseline_preds = baseline_model.predict(X, verbose=0)
             results.append({
                 'model': 'baseline',
                 'predictions': baseline_preds.flatten().tolist()
             })
-        
+
         if optimized_model:
             optimized_preds = optimized_model.predict(X, verbose=0)
             results.append({
                 'model': 'optimized',
                 'predictions': optimized_preds.flatten().tolist()
             })
-        
+
         return jsonify({
             'success': True,
             'num_samples': len(df),
             'results': results
         })
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -242,9 +242,9 @@ def generate_report():
                 'social_param': 2.0
             }
         }
-        
+
         return jsonify({'success': True, 'report': report})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -270,11 +270,13 @@ def server_error(error):
 if __name__ == '__main__':
     # Load models on startup
     load_models()
-    
+
     # Run Flask app
     app.run(
         host='0.0.0.0',
         port=5000,
         debug=True,
+        port=int(os.getenv('PORT', '5000')),
+        debug=os.getenv('FLASK_DEBUG', '0') == '1',
         threaded=True
     )
