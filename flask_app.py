@@ -3,20 +3,21 @@ Flask Web Application and REST API
 Frontend interface for Hydroponic ML Project
 """
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import json
 import os
+import importlib.util
 from datetime import datetime
-from io import BytesIO
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix
 import warnings
 warnings.filterwarnings('ignore')
+
+if importlib.util.find_spec('tensorflow'):
+    import tensorflow as tf
+else:
+    tf = None
 
 # Initialize Flask app
 # NOTE: this project keeps `index.html` at repo root (not in `templates/`).
@@ -36,6 +37,9 @@ scaler = None
 def load_models():
     """Load trained models from disk"""
     global baseline_model, optimized_model
+
+    if tf is None:
+        return
     
     try:
         if os.path.exists('models/baseline_cnn.h5'):
@@ -81,6 +85,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
+        'tensorflow_available': tf is not None,
         'baseline_model_loaded': baseline_model is not None,
         'optimized_model_loaded': optimized_model is not None
     })

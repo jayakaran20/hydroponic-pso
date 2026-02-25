@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="api-base-url" content="">
     <title>Hydroponic Agriculture - CNN-PSO Optimization</title>
     <style>
         * {
@@ -522,6 +523,16 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
     
     <script>
+        const API_BASE_URL = (
+            window.API_BASE_URL ||
+            document.querySelector('meta[name="api-base-url"]')?.content ||
+            ''
+        ).replace(/\/$/, '');
+
+        function apiFetch(path, options = {}) {
+            return fetch(`${API_BASE_URL}${path}`, options);
+        }
+
         function showSection(sectionId) {
             // Hide all sections
             document.querySelectorAll('.content-section').forEach(section => {
@@ -553,7 +564,7 @@ Dense(1, activation=sigmoid) → Binary Output
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
             
-            fetch('/api/predict', {
+            apiFetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -619,7 +630,7 @@ Dense(1, activation=sigmoid) → Binary Output
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             
-            fetch('/api/batch-predict', {
+            apiFetch('/api/batch-predict', {
                 method: 'POST',
                 body: formData
             })
@@ -638,7 +649,7 @@ Dense(1, activation=sigmoid) → Binary Output
         }
         
         function loadMetrics() {
-            fetch('/api/metrics')
+            apiFetch('/api/metrics')
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
@@ -660,7 +671,7 @@ Dense(1, activation=sigmoid) → Binary Output
         
         // Check API health on load
         window.addEventListener('load', () => {
-            fetch('/api/health')
+            apiFetch('/api/health')
             .then(response => response.json())
             .then(data => console.log('API Health:', data))
             .catch(error => console.log('API connection error'));

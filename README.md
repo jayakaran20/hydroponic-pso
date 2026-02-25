@@ -91,7 +91,65 @@ python flask_app.py
 - 📈 Model performance metrics
 - 🏗️ System architecture visualization
 
-### 4. API Usage (cURL)
+### 4. Deploy Frontend + Backend (Docker)
+
+```bash
+# From repository root
+./deploy/deploy.sh
+
+# Stop services (docker mode)
+docker compose -f deploy/docker-compose.prod.yml down
+```
+
+**Deployment behavior:**
+- If Docker is available: deploys `backend` + `frontend` using Compose.
+- If Docker is not available: auto-falls back to local backend start (`flask_app.py`) and serves frontend from Flask at `http://localhost:5000`.
+
+**What gets deployed in Docker mode:**
+- `backend` service (Flask + Gunicorn) on internal port 5000
+- `frontend` service (Nginx static UI + API reverse proxy) on port 80 (or `FRONTEND_PORT`)
+
+**Optional environment variables:**
+- `FRONTEND_PORT` (default `80`)
+- `BACKEND_IMAGE` (default `hydroponic-backend:latest`)
+- `FRONTEND_IMAGE` (default `hydroponic-frontend:latest`)
+
+### 5. Deploy to Render (Frontend + Backend)
+
+This repo now includes `render.yaml` so you can deploy both services from one Blueprint.
+
+1. Push this repo to GitHub.
+2. In Render: **New +** → **Blueprint** → select this repo.
+3. Render creates:
+   - `hydroponic-backend` (Docker web service from `Dockerfile.backend`)
+   - `hydroponic-frontend` (static site from `index.html`)
+4. After backend is live, set frontend API URL by editing `index.html` meta tag:
+
+```html
+<meta name="api-base-url" content="https://your-backend.onrender.com">
+```
+
+5. Redeploy frontend static site.
+
+### 6. Deploy Frontend to Vercel + Backend to Render
+
+This repo includes `vercel.json` for SPA/static routing.
+
+1. Deploy backend first on Render (as above).
+2. Deploy frontend on Vercel from this repo.
+3. Set API URL in `index.html`:
+
+```html
+<meta name="api-base-url" content="https://your-backend.onrender.com">
+```
+
+4. Redeploy Vercel.
+
+**Notes**
+- If frontend and backend are on different domains, CORS is already enabled in Flask.
+- Frontend requests use the configured API base URL; if left blank, it uses same-origin (`/api/...`).
+
+### 7. API Usage (cURL)
 
 ```bash
 # Single prediction
