@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: hydroponic-backend
+    env: docker
+    dockerfilePath: ./Dockerfile.backend
+    autoDeploy: true
+    healthCheckPath: /api/health
+    plan: free
+
+  - type: static
+    name: hydroponic-frontend
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: true
+    buildCommand: ""
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
