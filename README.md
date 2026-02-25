@@ -91,33 +91,96 @@ python flask_app.py
 - 📈 Model performance metrics
 - 🏗️ System architecture visualization
 
-### 4. Deploy Frontend + Backend (Automatic)
+### 4. API Usage (cURL)
+### 4. Deploy Frontend + Backend (Docker)
 
 ```bash
-# From repository root (recommended)
-./deploy/deploy_auto.sh
-```
+# From repository root
+./deploy/deploy.sh
 
-`deploy_auto.sh` will try Docker deployment first and automatically fall back to a local Python deployment if Docker is unavailable.
-
-- Docker mode URL: `http://localhost:${FRONTEND_PORT:-80}`
-- Local fallback URL (single service serving UI + API): `http://localhost:5000`
-
-**Stop commands:**
-```bash
-# Stop Docker services
+# Stop services (docker mode)
 docker compose -f deploy/docker-compose.prod.yml down
-
-# Stop local fallback service
-./deploy/stop_local.sh
 ```
 
-**Optional environment variables (Docker mode):**
+**Deployment behavior:**
+- If Docker is available: deploys `backend` + `frontend` using Compose.
+- If Docker is not available: auto-falls back to local backend start (`flask_app.py`) and serves frontend from Flask at `http://localhost:5000`.
+
+**What gets deployed in Docker mode:**
+- `backend` service (Flask + Gunicorn) on internal port 5000
+- `frontend` service (Nginx static UI + API reverse proxy) on port 80 (or `FRONTEND_PORT`)
+
+**Optional environment variables:**
 - `FRONTEND_PORT` (default `80`)
 - `BACKEND_IMAGE` (default `hydroponic-backend:latest`)
 - `FRONTEND_IMAGE` (default `hydroponic-frontend:latest`)
 
-### 4. API Usage (cURL)
+### 5. Deploy to Render (Frontend + Backend)
+
+This repo now includes `render.yaml` so you can deploy both services from one Blueprint.
+
+1. Push this repo to GitHub.
+2. In Render: **New +** → **Blueprint** → select this repo.
+3. Render creates:
+   - `hydroponic-backend` (Docker web service from `Dockerfile.backend`)
+   - `hydroponic-frontend` (static site from `index.html`)
+4. After backend is live, set frontend API URL by editing `index.html` meta tag:
+
+```html
+<meta name="api-base-url" content="https://your-backend.onrender.com">
+```
+
+5. Redeploy frontend static site.
+
+### 6. Deploy Frontend to Vercel + Backend to Render
+
+This repo includes `vercel.json` for SPA/static routing.
+
+1. Deploy backend first on Render (as above).
+2. Deploy frontend on Vercel from this repo.
+3. Set API URL in `index.html`:
+
+```html
+<meta name="api-base-url" content="https://your-backend.onrender.com">
+```
+
+4. Redeploy Vercel.
+
+**Notes**
+- If frontend and backend are on different domains, CORS is already enabled in Flask.
+- Frontend requests use the configured API base URL; if left blank, it uses same-origin (`/api/...`).
+
+### 8. Short Deployment Procedure (Vercel + Render)
+
+**Option A: Render (Frontend + Backend together)**
+1. Push code to GitHub.
+2. Render → **New +** → **Blueprint** → select repo (uses `render.yaml`).
+3. Wait until backend is live, then copy backend URL (for example `https://hydroponic-backend.onrender.com`).
+4. Set this in `index.html`:
+   ```html
+   <meta name="api-base-url" content="https://hydroponic-backend.onrender.com">
+   ```
+5. Redeploy frontend static service.
+
+**Option B: Backend on Render + Frontend on Vercel**
+1. Deploy backend on Render first (Docker service from `Dockerfile.backend`).
+2. Deploy frontend on Vercel (repo root, uses `vercel.json`).
+3. Set backend URL in `index.html` `meta[name="api-base-url"]` as above.
+4. Redeploy Vercel frontend.
+
+**Quick API Connection Check (Frontend ↔ Backend)**
+```bash
+# 1) Backend health
+curl https://YOUR_BACKEND_URL/api/health
+
+# 2) Prediction endpoint
+curl -X POST https://YOUR_BACKEND_URL/api/predict \
+  -H "Content-Type: application/json" \
+  -d '{"ph":6.0,"tds":1200,"water_level":1,"dht_temp":24,"dht_humidity":70,"water_temp":21}'
+```
+Open frontend URL and verify browser DevTools Network shows successful `/api/health` and `/api/predict` calls.
+
+### 7. API Usage (cURL)
 
 ```bash
 # Single prediction
