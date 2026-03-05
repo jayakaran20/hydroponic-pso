@@ -34,6 +34,18 @@ This project implements a **CNN-PSO hybrid approach** for optimizing deep learni
 - Humidity: 50-90%
 - Water Temp: 16-26°C
 
+### Sample CSV for Dashboard Batch Upload
+
+Use `sample_batch_upload.csv` (repo root) for the **Batch Processing** tab.
+
+Required columns:
+- `pH`
+- `TDS`
+- `water_level`
+- `DHT_temp`
+- `DHT_humidity`
+- `water_temp`
+
 ---
 
 ## 🚀 Quick Start
