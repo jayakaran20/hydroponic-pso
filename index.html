@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="api-base-url" content="">
+    <meta name="api-base-url" content="https://hydroponic-pso.onrender.com">
     <title>Hydroponic Agriculture - CNN-PSO Optimization</title>
     <style>
         * {
@@ -451,6 +451,11 @@
             </div>
 
             <button class="btn" onclick="loadMetrics()">📊 Load Saved Metrics</button>
+
+            <div id="metrics-results" class="result-section" style="display: none; margin-top: 20px;">
+                <h3>Saved Metrics</h3>
+                <div id="metrics-content"></div>
+            </div>
         </div>
 
         <!-- ARCHITECTURE SECTION -->
@@ -523,14 +528,47 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
 
     <script>
-        const API_BASE_URL = (
+        const configuredBaseUrl = (
             window.API_BASE_URL ||
             document.querySelector('meta[name="api-base-url"]')?.content ||
             ''
-        ).replace(/\/$/, '');
+        ).trim();
+
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const API_BASE_URL = (isLocalhost ? '' : (configuredBaseUrl || '')).replace(/\/$/, '');
 
         function apiFetch(path, options = {}) {
             return fetch(`${API_BASE_URL}${path}`, options);
+        }
+
+
+        function clientRuleBasedProbability(input) {
+            const checks = [
+                input.ph >= 5.5 && input.ph <= 7.0,
+                input.tds >= 800 && input.tds <= 1500,
+                input.water_level >= 0 && input.water_level <= 3,
+                input.dht_temp >= 18 && input.dht_temp <= 28,
+                input.dht_humidity >= 50 && input.dht_humidity <= 90,
+                input.water_temp >= 16 && input.water_temp <= 26
+            ];
+
+            const score = checks.filter(Boolean).length / checks.length;
+            return Math.max(0.05, Math.min(0.95, score));
+        }
+
+        function clientFallbackPredictions(input) {
+            const probability = clientRuleBasedProbability(input);
+            const prediction = {
+                probability,
+                health_status: probability > 0.5 ? 'Healthy' : 'Unhealthy',
+                confidence: Math.max(probability, 1 - probability),
+                source: 'frontend_rule_fallback'
+            };
+
+            return {
+                baseline: prediction,
+                optimized: prediction
+            };
         }
 
         function showSection(sectionId) {
@@ -564,7 +602,6 @@ Dense(1, activation=sigmoid) → Binary Output
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
 
-            fetch('/api/predict', {
             apiFetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -575,7 +612,13 @@ Dense(1, activation=sigmoid) → Binary Output
                 document.getElementById('loading').style.display = 'none';
 
                 if (result.success) {
-                    displayPredictionResults(result.predictions);
+                    const hasPredictions = result.predictions && (result.predictions.baseline || result.predictions.optimized);
+                    const effectivePredictions = hasPredictions ? result.predictions : clientFallbackPredictions(data);
+                    displayPredictionResults(effectivePredictions);
+
+                    if (!hasPredictions) {
+                        showAlert('Models are unavailable on backend. Displaying rule-based fallback prediction.', 'warning');
+                    }
                 } else {
                     showAlert('Error: ' + result.error, 'error');
                 }
@@ -599,6 +642,7 @@ Dense(1, activation=sigmoid) → Binary Output
                     </p>
                     <p><strong>Probability:</strong> ${(b.probability * 100).toFixed(2)}%</p>
                     <p><strong>Confidence:</strong> ${(b.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Source:</strong> ${b.source || 'model'}</p>
                 `;
             }
 
@@ -611,6 +655,7 @@ Dense(1, activation=sigmoid) → Binary Output
                     </p>
                     <p><strong>Probability:</strong> ${(o.probability * 100).toFixed(2)}%</p>
                     <p><strong>Confidence:</strong> ${(o.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Source:</strong> ${o.source || 'model'}</p>
                 `;
             }
 
@@ -631,7 +676,6 @@ Dense(1, activation=sigmoid) → Binary Output
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            fetch('/api/batch-predict', {
             apiFetch('/api/batch-predict', {
                 method: 'POST',
                 body: formData
@@ -640,6 +684,13 @@ Dense(1, activation=sigmoid) → Binary Output
             .then(result => {
                 if (result.success) {
                     let html = `<p>Processed ${result.num_samples} samples</p>`;
+                    if (result.results && result.results.length) {
+                        html += '<ul>';
+                        result.results.forEach(r => {
+                            html += `<li><strong>${r.model}</strong>: ${r.labels ? r.labels.slice(0, 5).join(', ') : 'predictions generated'} (${r.source || 'model'})</li>`;
+                        });
+                        html += '</ul>';
+                    }
                     document.getElementById('batch-content').innerHTML = html;
                     document.getElementById('batch-results').style.display = 'block';
                     showAlert('Batch processing completed!', 'success');
@@ -651,12 +702,43 @@ Dense(1, activation=sigmoid) → Binary Output
         }
 
         function loadMetrics() {
-            fetch('/api/metrics')
             apiFetch('/api/metrics')
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    console.log('Metrics loaded:', result.metrics);
+                    const metrics = result.metrics || {};
+                    const baseline = metrics.baseline || metrics.baseline_metrics || {};
+                    const optimized = metrics.optimized || metrics.optimized_metrics || {};
+
+                    const metricRow = (label, b, o) => `
+                        <tr>
+                            <td><strong>${label}</strong></td>
+                            <td>${b ?? 'N/A'}</td>
+                            <td>${o ?? 'N/A'}</td>
+                        </tr>
+                    `;
+
+                    const html = `
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">Metric</th>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">Baseline CNN</th>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">PSO-Optimized CNN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${metricRow('Accuracy', baseline.accuracy, optimized.accuracy)}
+                                ${metricRow('Precision', baseline.precision, optimized.precision)}
+                                ${metricRow('Recall', baseline.recall, optimized.recall)}
+                                ${metricRow('F1 Score', baseline.f1_score, optimized.f1_score)}
+                                ${metricRow('AUC', baseline.auc, optimized.auc)}
+                            </tbody>
+                        </table>
+                    `;
+
+                    document.getElementById('metrics-content').innerHTML = html;
+                    document.getElementById('metrics-results').style.display = 'block';
                     showAlert('Metrics loaded successfully!', 'success');
                 } else {
                     showAlert('No metrics available yet. Run training pipeline first.', 'error');
@@ -674,7 +756,6 @@ Dense(1, activation=sigmoid) → Binary Output
 
         // Check API health on load
         window.addEventListener('load', () => {
-            fetch('/api/health')
             apiFetch('/api/health')
             .then(response => response.json())
             .then(data => console.log('API Health:', data))
