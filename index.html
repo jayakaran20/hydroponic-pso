@@ -541,6 +541,36 @@ Dense(1, activation=sigmoid) → Binary Output
             return fetch(`${API_BASE_URL}${path}`, options);
         }
 
+
+        function clientRuleBasedProbability(input) {
+            const checks = [
+                input.ph >= 5.5 && input.ph <= 7.0,
+                input.tds >= 800 && input.tds <= 1500,
+                input.water_level >= 0 && input.water_level <= 3,
+                input.dht_temp >= 18 && input.dht_temp <= 28,
+                input.dht_humidity >= 50 && input.dht_humidity <= 90,
+                input.water_temp >= 16 && input.water_temp <= 26
+            ];
+
+            const score = checks.filter(Boolean).length / checks.length;
+            return Math.max(0.05, Math.min(0.95, score));
+        }
+
+        function clientFallbackPredictions(input) {
+            const probability = clientRuleBasedProbability(input);
+            const prediction = {
+                probability,
+                health_status: probability > 0.5 ? 'Healthy' : 'Unhealthy',
+                confidence: Math.max(probability, 1 - probability),
+                source: 'frontend_rule_fallback'
+            };
+
+            return {
+                baseline: prediction,
+                optimized: prediction
+            };
+        }
+
         function showSection(sectionId) {
             // Hide all sections
             document.querySelectorAll('.content-section').forEach(section => {
@@ -582,7 +612,13 @@ Dense(1, activation=sigmoid) → Binary Output
                 document.getElementById('loading').style.display = 'none';
 
                 if (result.success) {
-                    displayPredictionResults(result.predictions);
+                    const hasPredictions = result.predictions && (result.predictions.baseline || result.predictions.optimized);
+                    const effectivePredictions = hasPredictions ? result.predictions : clientFallbackPredictions(data);
+                    displayPredictionResults(effectivePredictions);
+
+                    if (!hasPredictions) {
+                        showAlert('Models are unavailable on backend. Displaying rule-based fallback prediction.', 'warning');
+                    }
                 } else {
                     showAlert('Error: ' + result.error, 'error');
                 }
@@ -606,6 +642,7 @@ Dense(1, activation=sigmoid) → Binary Output
                     </p>
                     <p><strong>Probability:</strong> ${(b.probability * 100).toFixed(2)}%</p>
                     <p><strong>Confidence:</strong> ${(b.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Source:</strong> ${b.source || 'model'}</p>
                 `;
             }
 
@@ -618,6 +655,7 @@ Dense(1, activation=sigmoid) → Binary Output
                     </p>
                     <p><strong>Probability:</strong> ${(o.probability * 100).toFixed(2)}%</p>
                     <p><strong>Confidence:</strong> ${(o.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Source:</strong> ${o.source || 'model'}</p>
                 `;
             }
 
@@ -646,6 +684,13 @@ Dense(1, activation=sigmoid) → Binary Output
             .then(result => {
                 if (result.success) {
                     let html = `<p>Processed ${result.num_samples} samples</p>`;
+                    if (result.results && result.results.length) {
+                        html += '<ul>';
+                        result.results.forEach(r => {
+                            html += `<li><strong>${r.model}</strong>: ${r.labels ? r.labels.slice(0, 5).join(', ') : 'predictions generated'} (${r.source || 'model'})</li>`;
+                        });
+                        html += '</ul>';
+                    }
                     document.getElementById('batch-content').innerHTML = html;
                     document.getElementById('batch-results').style.display = 'block';
                     showAlert('Batch processing completed!', 'success');
