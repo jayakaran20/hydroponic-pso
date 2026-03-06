@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="api-base-url" content="">
+    <meta name="api-base-url" content="https://hydroponic-pso.onrender.com">
     <title>Hydroponic Agriculture - CNN-PSO Optimization</title>
     <style>
         * {
@@ -451,6 +451,11 @@
             </div>
 
             <button class="btn" onclick="loadMetrics()">📊 Load Saved Metrics</button>
+
+            <div id="metrics-results" class="result-section" style="display: none; margin-top: 20px;">
+                <h3>Saved Metrics</h3>
+                <div id="metrics-content"></div>
+            </div>
         </div>
 
         <!-- ARCHITECTURE SECTION -->
@@ -523,11 +528,14 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
 
     <script>
-        const API_BASE_URL = (
+        const configuredBaseUrl = (
             window.API_BASE_URL ||
             document.querySelector('meta[name="api-base-url"]')?.content ||
             ''
-        ).replace(/\/$/, '');
+        ).trim();
+
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const API_BASE_URL = (isLocalhost ? '' : (configuredBaseUrl || '')).replace(/\/$/, '');
 
         function apiFetch(path, options = {}) {
             return fetch(`${API_BASE_URL}${path}`, options);
@@ -564,7 +572,6 @@ Dense(1, activation=sigmoid) → Binary Output
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
 
-            fetch('/api/predict', {
             apiFetch('/api/predict', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -631,7 +638,6 @@ Dense(1, activation=sigmoid) → Binary Output
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
-            fetch('/api/batch-predict', {
             apiFetch('/api/batch-predict', {
                 method: 'POST',
                 body: formData
@@ -651,12 +657,43 @@ Dense(1, activation=sigmoid) → Binary Output
         }
 
         function loadMetrics() {
-            fetch('/api/metrics')
             apiFetch('/api/metrics')
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    console.log('Metrics loaded:', result.metrics);
+                    const metrics = result.metrics || {};
+                    const baseline = metrics.baseline || metrics.baseline_metrics || {};
+                    const optimized = metrics.optimized || metrics.optimized_metrics || {};
+
+                    const metricRow = (label, b, o) => `
+                        <tr>
+                            <td><strong>${label}</strong></td>
+                            <td>${b ?? 'N/A'}</td>
+                            <td>${o ?? 'N/A'}</td>
+                        </tr>
+                    `;
+
+                    const html = `
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">Metric</th>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">Baseline CNN</th>
+                                    <th style="text-align:left; border-bottom:1px solid #ddd; padding:8px;">PSO-Optimized CNN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${metricRow('Accuracy', baseline.accuracy, optimized.accuracy)}
+                                ${metricRow('Precision', baseline.precision, optimized.precision)}
+                                ${metricRow('Recall', baseline.recall, optimized.recall)}
+                                ${metricRow('F1 Score', baseline.f1_score, optimized.f1_score)}
+                                ${metricRow('AUC', baseline.auc, optimized.auc)}
+                            </tbody>
+                        </table>
+                    `;
+
+                    document.getElementById('metrics-content').innerHTML = html;
+                    document.getElementById('metrics-results').style.display = 'block';
                     showAlert('Metrics loaded successfully!', 'success');
                 } else {
                     showAlert('No metrics available yet. Run training pipeline first.', 'error');
@@ -674,7 +711,6 @@ Dense(1, activation=sigmoid) → Binary Output
 
         // Check API health on load
         window.addEventListener('load', () => {
-            fetch('/api/health')
             apiFetch('/api/health')
             .then(response => response.json())
             .then(data => console.log('API Health:', data))

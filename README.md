@@ -34,6 +34,18 @@ This project implements a **CNN-PSO hybrid approach** for optimizing deep learni
 - Humidity: 50-90%
 - Water Temp: 16-26°C
 
+### Sample CSV for Dashboard Batch Upload
+
+Use `sample_batch_upload.csv` (repo root) for the **Batch Processing** tab.
+
+Required columns:
+- `pH`
+- `TDS`
+- `water_level`
+- `DHT_temp`
+- `DHT_humidity`
+- `water_temp`
+
 ---
 
 ## 🚀 Quick Start
@@ -133,6 +145,14 @@ This repo now includes `render.yaml` so you can deploy both services from one Bl
 5. Redeploy frontend static site.
 
 ### 6. Deploy Frontend to Vercel + Backend to Render
+
+This repo includes `vercel.json` for SPA/static routing and API proxying.
+
+- Frontend: `https://hydroponic-pso.vercel.app`
+- Backend: `https://hydroponic-pso.onrender.com`
+
+`vercel.json` now forwards `/api/*` requests from Vercel to Render backend, so frontend API calls work without CORS/manual URL issues.
+
 
 This repo includes `vercel.json` for SPA/static routing.
 
