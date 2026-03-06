@@ -146,6 +146,14 @@ This repo now includes `render.yaml` so you can deploy both services from one Bl
 
 ### 6. Deploy Frontend to Vercel + Backend to Render
 
+This repo includes `vercel.json` for SPA/static routing and API proxying.
+
+- Frontend: `https://hydroponic-pso.vercel.app`
+- Backend: `https://hydroponic-pso.onrender.com`
+
+`vercel.json` now forwards `/api/*` requests from Vercel to Render backend, so frontend API calls work without CORS/manual URL issues.
+
+
 This repo includes `vercel.json` for SPA/static routing.
 
 1. Deploy backend first on Render (as above).

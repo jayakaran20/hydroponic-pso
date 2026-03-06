@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="api-base-url" content="">
+    <meta name="api-base-url" content="https://hydroponic-pso.onrender.com">
     <title>Hydroponic Agriculture - CNN-PSO Optimization</title>
     <style>
         * {
@@ -528,11 +528,14 @@ Dense(1, activation=sigmoid) → Binary Output
     </div>
 
     <script>
-        const API_BASE_URL = (
+        const configuredBaseUrl = (
             window.API_BASE_URL ||
             document.querySelector('meta[name="api-base-url"]')?.content ||
             ''
-        ).replace(/\/$/, '');
+        ).trim();
+
+        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const API_BASE_URL = (isLocalhost ? '' : (configuredBaseUrl || '')).replace(/\/$/, '');
 
         function apiFetch(path, options = {}) {
             return fetch(`${API_BASE_URL}${path}`, options);
